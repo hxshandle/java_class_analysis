@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!java_class_analysis/lib/
 lib64/
 parts/
 sdist/
@@ -127,3 +128,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea/
