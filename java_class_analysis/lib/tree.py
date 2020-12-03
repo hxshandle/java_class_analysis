@@ -26,12 +26,12 @@ class Node(object, metaclass=MetaNode):
             raise ValueError('Extraneous arguments')
 
 
-class JavaFileMeta(Node):
-    attrs = ("path", "types")
-
-
 class NamedNode(Node):
     attrs = ("name", "children")
+
+
+class JavaFileMeta(Node):
+    attrs = ("path", "types", "ast")
 
 
 class JavaClassMeta(NamedNode):
