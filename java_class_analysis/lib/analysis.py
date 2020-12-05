@@ -1,15 +1,21 @@
+import os
 from collections import namedtuple
 
 from javalang import tree
 import javalang
+from pathlib import Path
 
 from lib.tree import JavaClassMeta
+from lib.utils import init_workspace_files
 
 ParseContext = namedtuple("ParseContext", ["package", "compilationUnit"])
 MethodContext = namedtuple("MethodContext", ["method", "local_variables"])
+all_java_files = dict()
 
 
 class Analyzer:
+    root_ast = None
+    root_workspace = Path.cwd()
     parse_context_stack = []
     context = None
     klass_stack = []
@@ -17,25 +23,40 @@ class Analyzer:
     method_context = None
     deep = 0
 
-    def __init__(self, file_path):
-        self.root_java_file = file_path
-        self.root_ast = javalang.parse.parse(open(file_path, 'r').read())
+    def __init__(self, workspace=Path.cwd()):
+        global all_java_files
+        self.root_workspace = Path(workspace) if isinstance(workspace, str) else workspace
+        print("Current root workspace is {}".format(self.root_workspace))
+        # init file list
+        all_java_files = init_workspace_files(self.root_workspace)
+
+    def set_workspace_path(self, path: str):
+        self.root_workspace = Path(path)
 
     def push_context(self, ctx: ParseContext):
         self.parse_context_stack.append(ctx)
         self.context = ctx
 
-    def parse(self):
+    def parse(self, java_class=None, filters=[]):
         """ process java file """
-        for path, node in self.root_ast.filter(tree.CompilationUnit):
-            self.push_context(ParseContext(node.package.name, node))
-            self.parse_class()
-            print(self.klass)
+        if self.get_ast(java_class):
+            for path, node in self.root_ast.filter(tree.CompilationUnit):
+                self.push_context(ParseContext(node.package.name, node))
+                self.parse_class()
+                for out_class, methods in self.klass.out_class_method_calls().items():
+                    self.deep += 1
+                    print("nest parse class {} with {} ".format(out_class, methods))
 
-            print(self.klass.out_class_method_calls())
-            for out_class, methods in self.klass.out_class_method_calls().items():
-                self.deep += 1
-                print("nest parse class {} with {} ".format(out_class, methods))
+    def get_ast(self, java_class: str):
+        paths = all_java_files.get(java_class)
+        # TODO need deal with same package in different repos
+        if not paths:
+            return False
+        if len(paths) > 1:
+            print("🚨🚨🚨 Warning: Multi java files found")
+        for p in paths:
+            self.root_ast = javalang.parse.parse(open(p, 'r').read())
+        return True
 
     def parse_class(self):
         for path, node in self.context.compilationUnit.filter(tree.ClassDeclaration):
