@@ -25,6 +25,18 @@ class Node(object, metaclass=MetaNode):
         if values:
             raise ValueError('Extraneous arguments')
 
+    def __repr__(self):
+        attr_values = []
+        for attr in sorted(self.attrs):
+            attr_values.append('%s=%s' % (attr, getattr(self, attr)))
+        return '%s(%s)' % (type(self).__name__, ', '.join(attr_values))
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
 
 class NamedNode(Node):
     attrs = ("name", "children")
@@ -35,4 +47,18 @@ class JavaFileMeta(Node):
 
 
 class JavaClassMeta(NamedNode):
-    attrs = ("package", "type")
+    attrs = ("package", "imports", "ast")
+    # out call ast details from source code
+    out_calls = list()
+
+    def out_class_method_calls(self):
+        """ grouped out method calls """
+        _out_calls = dict()
+        for out_class, out_method, call_from in self.out_calls:
+            _out_class_methods = _out_calls.get(out_class)
+            if not _out_class_methods:
+                _out_class_methods = list()
+                _out_calls[out_class] = _out_class_methods
+            if out_method.member not in _out_class_methods:
+                _out_class_methods.append(out_method.member)
+        return _out_calls
