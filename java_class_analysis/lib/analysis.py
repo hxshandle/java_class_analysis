@@ -26,7 +26,7 @@ class Analyzer:
     def __init__(self, workspace=Path.cwd()):
         global all_java_files
         self.root_workspace = Path(workspace) if isinstance(workspace, str) else workspace
-        print("Current root workspace is {}".format(self.root_workspace))
+        print("📂 [{}]".format(self.root_workspace))
         # init file list
         all_java_files = init_workspace_files(self.root_workspace)
 
@@ -56,6 +56,7 @@ class Analyzer:
             print("🚨🚨🚨 Warning: Multi java files found")
         for p in paths:
             self.root_ast = javalang.parse.parse(open(p, 'r').read())
+            print("🏴󠁩󠁤󠁪󠁷󠁿 %s" % java_class)
         return True
 
     def parse_class(self):

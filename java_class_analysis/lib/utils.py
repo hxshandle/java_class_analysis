@@ -19,16 +19,6 @@ def workspace_root():
     return _walk_to_root(cwd())
 
 
-def get_ast_for_java_file(path):
-    """ Return AST tree for the given absolute for java class"""
-    try:
-        _c = open(path, 'r')
-        s = _c.read()
-        return javalang.parse.parse(s)
-    except:
-        return None
-
-
 def init_workspace_files(root_workspace):
     all_java_files = dict()
     for root, dirs, files in os.walk(root_workspace):
