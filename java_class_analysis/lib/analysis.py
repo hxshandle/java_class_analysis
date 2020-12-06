@@ -15,6 +15,14 @@ all_java_files = dict()
 parse_marker = dict()
 
 
+def guess_sca_impl(class_full_name: str):
+    name_arr = class_full_name.split(".")
+    guess_impl_class_name = "{}.impl.{}Impl".format(".".join(name_arr[:-1]), name_arr[-1])
+    if all_java_files.get(guess_impl_class_name):
+        return guess_impl_class_name
+    return False
+
+
 class Analyzer:
     root_ast = None
     root_workspace = Path.cwd()
@@ -29,9 +37,10 @@ class Analyzer:
     def log(self, msg):
         print("%s %s" % ('  ' * self.deep, msg))
 
-    def __init__(self, workspace=Path.cwd(), max_deep=5):
+    def __init__(self, workspace=Path.cwd(), max_deep=5, enable_method_filter=True):
         global all_java_files
         self.max_deep = max_deep
+        self.enable_method_filter = enable_method_filter
         self.root_workspace = Path(workspace) if isinstance(workspace, str) else workspace
         self.log("📂 [{}]".format(self.root_workspace))
         # init file list
@@ -41,7 +50,7 @@ class Analyzer:
         self.root_workspace = Path(path)
 
     def push_context(self, ctx: ParseContext):
-        self.log("⬇ push parse_context %s" % ctx.file_path)
+        # self.log("⬇ push parse_context %s" % ctx.file_path)
         self.parse_context_stack.append(ctx)
         self.context = ctx
 
@@ -52,8 +61,15 @@ class Analyzer:
         :return:
         """
         ret = []
+        full_class_name = java_class
+        is_traverse_to_impl = False
         self.class_methods_filter = methods
-        if self.get_ast(java_class):
+        # guess if it should be a sca Impl class
+        impl_class = guess_sca_impl(java_class)
+        if impl_class:
+            is_traverse_to_impl = True
+            full_class_name = impl_class
+        if self.get_ast(full_class_name):
             for path, node in self.root_ast.filter(tree.CompilationUnit):
                 self.deep += 1
                 self.push_context(ParseContext(node.package.name, node, java_class))
@@ -73,15 +89,15 @@ class Analyzer:
     def parse_nest_out_call_classes(self):
         if self.deep < self.max_deep:
             for out_class, methods in self.klass.out_class_method_calls().items():
-
-                o = self.parse(out_class, methods=methods)
+                _m = methods if self.enable_method_filter else None
+                o = self.parse(out_class, methods=_m)
                 if len(o) > 0:
                     self.klass.children.extend(o)
                     self.log("nest parse class {} with {} ".format(out_class, methods))
 
     def pop_context(self):
         p = self.parse_context_stack.pop()
-        self.log("⬆ pop context " + p.file_path)
+        # self.log("⬆ pop context " + p.file_path)
         if len(self.parse_context_stack) > 0:
             self.context = self.parse_context_stack[-1]
         else:
