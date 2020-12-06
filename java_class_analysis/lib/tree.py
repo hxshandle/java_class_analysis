@@ -49,7 +49,11 @@ class JavaFileMeta(Node):
 class JavaClassMeta(NamedNode):
     attrs = ("package", "imports", "ast")
     # out call ast details from source code
-    out_calls = list()
+
+    def __init__(self, **kwargs):
+        super(JavaClassMeta, self).__init__(**kwargs)
+        self.out_calls = list()
+        self.children = list()
 
     def out_class_method_calls(self):
         """ grouped out method calls """

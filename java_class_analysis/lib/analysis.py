@@ -1,5 +1,6 @@
 import os
 from collections import namedtuple
+from typing import List
 
 from javalang import tree
 import javalang
@@ -8,9 +9,10 @@ from pathlib import Path
 from lib.tree import JavaClassMeta
 from lib.utils import init_workspace_files
 
-ParseContext = namedtuple("ParseContext", ["package", "compilationUnit"])
+ParseContext = namedtuple("ParseContext", ["package", "compilationUnit", "file_path"])
 MethodContext = namedtuple("MethodContext", ["method", "local_variables"])
 all_java_files = dict()
+parse_marker = dict()
 
 
 class Analyzer:
@@ -21,12 +23,17 @@ class Analyzer:
     klass_stack = []
     klass: tree.ClassDeclaration = None
     method_context = None
+    class_methods_filter = None
     deep = 0
 
-    def __init__(self, workspace=Path.cwd()):
+    def log(self, msg):
+        print("%s %s" % ('  ' * self.deep, msg))
+
+    def __init__(self, workspace=Path.cwd(), max_deep=5):
         global all_java_files
+        self.max_deep = max_deep
         self.root_workspace = Path(workspace) if isinstance(workspace, str) else workspace
-        print("📂 [{}]".format(self.root_workspace))
+        self.log("📂 [{}]".format(self.root_workspace))
         # init file list
         all_java_files = init_workspace_files(self.root_workspace)
 
@@ -34,18 +41,50 @@ class Analyzer:
         self.root_workspace = Path(path)
 
     def push_context(self, ctx: ParseContext):
+        self.log("⬇ push parse_context %s" % ctx.file_path)
         self.parse_context_stack.append(ctx)
         self.context = ctx
 
-    def parse(self, java_class=None, filters=[]):
-        """ process java file """
+    def parse(self, java_class=None, methods=None) -> List[JavaClassMeta]:
+        """ process java file
+        :param java_class:
+        :param methods: the methods filter
+        :return:
+        """
+        ret = []
+        self.class_methods_filter = methods
         if self.get_ast(java_class):
             for path, node in self.root_ast.filter(tree.CompilationUnit):
-                self.push_context(ParseContext(node.package.name, node))
-                self.parse_class()
-                for out_class, methods in self.klass.out_class_method_calls().items():
-                    self.deep += 1
-                    print("nest parse class {} with {} ".format(out_class, methods))
+                self.deep += 1
+                self.push_context(ParseContext(node.package.name, node, java_class))
+                java_meta = self.parse_class()
+                self.method_context = None
+                self.push_klass(java_meta)
+                self.parse_class_variable()
+                self.parse_class_methods()
+                ret.append(java_meta)
+                self.parse_nest_out_call_classes()
+                self.pop_context()
+                self.pop_klass()
+                self.deep -= 1
+        return ret
+
+    def parse_nest_out_call_classes(self):
+        if self.deep < self.max_deep:
+            for out_class, methods in self.klass.out_class_method_calls().items():
+
+                o = self.parse(out_class, methods=methods)
+                if len(o) > 0:
+                    self.klass.children.extend(o)
+                    self.log("nest parse class {} with {} ".format(out_class, methods))
+
+    def pop_context(self):
+        p = self.parse_context_stack.pop()
+        self.log("⬆ pop context " + p.file_path)
+        if len(self.parse_context_stack) > 0:
+            self.context = self.parse_context_stack[-1]
+        else:
+            self.context = None
 
     def get_ast(self, java_class: str):
         paths = all_java_files.get(java_class)
@@ -53,26 +92,31 @@ class Analyzer:
         if not paths:
             return False
         if len(paths) > 1:
-            print("🚨🚨🚨 Warning: Multi java files found")
+            self.log("🚨 Warning: Multi java files found")
         for p in paths:
             self.root_ast = javalang.parse.parse(open(p, 'r').read())
-            print("🏴󠁩󠁤󠁪󠁷󠁿 %s" % java_class)
+            self.log("🏴󠁩󠁤󠁪󠁷󠁿 %s" % java_class)
         return True
 
-    def parse_class(self):
+    def parse_class(self) -> JavaClassMeta:
         for path, node in self.context.compilationUnit.filter(tree.ClassDeclaration):
             # only deal with sf code
             imports = dict(
                 ((lambda p: p.split(".")[-1])(x.path), x.path) for x in self.context.compilationUnit.imports if
                 x.path.startswith(("com.successfactors", "com.sf")))
-
-            self.push_klass(JavaClassMeta(package=self.context.package, imports=imports, name=node.name, ast=node))
-            self.parse_class_variable()
-            self.parse_class_methods()
+            java_meta = JavaClassMeta(package=self.context.package, imports=imports, name=node.name, ast=node)
+            return java_meta
 
     def push_klass(self, klazz: JavaClassMeta):
         self.klass_stack.append(klazz)
         self.klass = klazz
+
+    def pop_klass(self):
+        self.klass_stack.pop()
+        if len(self.parse_context_stack) > 0:
+            self.klass = self.klass_stack[-1]
+        else:
+            self.klass = None
 
     def parse_class_variable(self):
         variable_type_map = dict()
@@ -83,10 +127,11 @@ class Analyzer:
 
     def parse_class_methods(self):
         for path, node in self.klass.ast.filter(tree.MethodDeclaration):
-            self.parse_method(path, node)
+            if self.class_methods_filter is None or node.name in self.class_methods_filter:
+                self.parse_method(path, node)
 
     def parse_method(self, path, node):
-        # print("parse Method " + node.name, node.position)
+        # self.log("parse Method " + node.name, node.position)
         ## current method local variables
         local_variable_map = dict()
         for p, lv in node.filter(tree.LocalVariableDeclaration):
