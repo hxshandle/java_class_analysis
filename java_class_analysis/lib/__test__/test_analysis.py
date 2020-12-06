@@ -10,6 +10,8 @@ class TestAnalysis:
         print("\n")
         # F:\tmp\trunk\au-cdp\au-cdp-service\src\main\java\com\successfactors\learning\service\learningclient\LearningRestClient.java
         analyzer = Analyzer(r"F:\tmp\trunk")
+        # "com.successfactors.learning.service.learningclient.LearningRestClient"
+        klass = "com.successfactors.gm.ui.fb.FBTGMBrowse"
 
-        ret = analyzer.parse(r"com.successfactors.learning.service.learningclient.LearningRestClient")
+        ret = analyzer.parse(klass)
         assert_that(len(ret)).is_equal_to(1)

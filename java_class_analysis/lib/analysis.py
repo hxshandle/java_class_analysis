@@ -58,14 +58,15 @@ class Analyzer:
                 self.deep += 1
                 self.push_context(ParseContext(node.package.name, node, java_class))
                 java_meta = self.parse_class()
-                self.method_context = None
-                self.push_klass(java_meta)
-                self.parse_class_variable()
-                self.parse_class_methods()
-                ret.append(java_meta)
-                self.parse_nest_out_call_classes()
+                if java_meta:
+                    self.method_context = None
+                    self.push_klass(java_meta)
+                    self.parse_class_variable()
+                    self.parse_class_methods()
+                    ret.append(java_meta)
+                    self.parse_nest_out_call_classes()
+                    self.pop_klass()
                 self.pop_context()
-                self.pop_klass()
                 self.deep -= 1
         return ret
 
@@ -94,7 +95,7 @@ class Analyzer:
         if len(paths) > 1:
             self.log("🚨 Warning: Multi java files found")
         for p in paths:
-            self.root_ast = javalang.parse.parse(open(p, 'r').read())
+            self.root_ast = javalang.parse.parse(open(p, 'rb').read())
             self.log("🏴󠁩󠁤󠁪󠁷󠁿 %s" % java_class)
         return True
 
@@ -113,7 +114,7 @@ class Analyzer:
 
     def pop_klass(self):
         self.klass_stack.pop()
-        if len(self.parse_context_stack) > 0:
+        if len(self.klass_stack) > 0:
             self.klass = self.klass_stack[-1]
         else:
             self.klass = None
@@ -126,6 +127,9 @@ class Analyzer:
         self.klass["fields"] = variable_type_map
 
     def parse_class_methods(self):
+        # parse constructor
+        for path, node in self.klass.ast.filter(tree.ConstructorDeclaration):
+            self.parse_method(path, node)
         for path, node in self.klass.ast.filter(tree.MethodDeclaration):
             if self.class_methods_filter is None or node.name in self.class_methods_filter:
                 self.parse_method(path, node)
@@ -138,8 +142,9 @@ class Analyzer:
             for v in lv.declarators:
                 local_variable_map[v.name] = lv.type.name
         self.method_context = MethodContext(node, local_variable_map)
-        for statement in node.body:
-            self.parse_out_call(path, statement)
+        if node.body:
+            for statement in node.body:
+                self.parse_out_call(path, statement)
 
     def parse_out_call(self, path, node: tree.Statement):
         for p, n in node.filter(tree.MethodInvocation):
