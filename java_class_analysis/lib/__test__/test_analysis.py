@@ -1,3 +1,7 @@
+import pickle
+import shelve
+from json import dumps, loads
+
 from lib.analysis import Analyzer
 from assertpy import assert_that
 from pathlib import Path
@@ -12,6 +16,9 @@ class TestAnalysis:
         analyzer = Analyzer(r"F:\tmp\trunk", enable_method_filter=True)
         # "com.successfactors.learning.service.learningclient.LearningRestClient"
         klass = "com.successfactors.gm.ui.fb.FBTGMBrowse"
-
         ret = analyzer.parse(klass)
         assert_that(len(ret)).is_equal_to(1)
+        k = ret[0]
+        with shelve.open('test_db') as db:
+            db[klass] = ret
+        print("done")
