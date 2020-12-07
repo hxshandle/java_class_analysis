@@ -9,8 +9,8 @@ def sequence_diagram(data: JavaClassMeta):
         key = "{}__{}__{}".format(from_method.name, line, column)
         m = out_methods.get(key)
         if not m:
-            m = []
+            m = set()
             out_methods[key] = m
-        m.append((target.split(".")[-1], target, invoked_method.member))
+        m.add((target.split(".")[-1], target, invoked_method.member))
     return "haha"
 
