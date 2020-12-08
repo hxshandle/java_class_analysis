@@ -15,7 +15,7 @@ class TestAnalysis:
         # F:\tmp\trunk\au-cdp\au-cdp-service\src\main\java\com\successfactors\learning\service\learningclient\LearningRestClient.java
         analyzer = Analyzer(r"F:\tmp\trunk", enable_method_filter=True)
         # "com.successfactors.learning.service.learningclient.LearningRestClient"
-        klass = "com.successfactors.gm.ui.fb.FBTGMBrowse"
+        klass = "com.successfactors.gm.ui.fb.FBObj5"
         ret = analyzer.parse(klass)
         assert_that(len(ret)).is_equal_to(1)
         k = ret[0]
