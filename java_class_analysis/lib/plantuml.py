@@ -1,3 +1,5 @@
+from typing import List
+
 from lib.tree import JavaClassMeta
 
 caches = dict()
@@ -5,7 +7,7 @@ caches = dict()
 
 def find_next_class(klass, target):
     for k in klass.children:
-        if k.name == target or k.name == target+"Impl":
+        if k.name == target or k.name == target + "Impl":
             return k
     return None
 
@@ -41,4 +43,21 @@ actor %s
 %s
 @enduml
     """ % (data.name, '\n'.join(build_sequence_dialgram(data)))
+    return _str
+
+
+def build_mind_diagram(klass: JavaClassMeta, deep=1) -> List[str]:
+    uml = list()
+    uml.append("{} {}".format('*'*deep, klass.package+"."+klass.name))
+    for child in klass.children:
+        uml += build_mind_diagram(child, deep + 1)
+    return uml
+
+
+def mind_diagram(data: JavaClassMeta):
+    _str = """
+@startmindmap
+%s
+@endmindmap
+    """ % "\n".join(build_mind_diagram(data))
     return _str
