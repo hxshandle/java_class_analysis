@@ -6,8 +6,8 @@ from javalang import tree
 import javalang
 from pathlib import Path
 
-from lib.tree import JavaClassMeta
-from lib.utils import init_workspace_files
+from .tree import JavaClassMeta
+from .utils import init_workspace_files
 
 ParseContext = namedtuple("ParseContext", ["package", "compilationUnit", "file_path"])
 MethodContext = namedtuple("MethodContext", ["method", "local_variables"])

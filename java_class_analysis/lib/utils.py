@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import javalang
 
 _cwd = Path.cwd()
 _java_files = list()

@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.tree import JavaClassMeta
+from .tree import JavaClassMeta
 
 caches = dict()
 
