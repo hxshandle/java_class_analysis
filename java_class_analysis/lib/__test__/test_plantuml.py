@@ -1,5 +1,5 @@
 import shelve
-from lib import plantuml
+from .. import plantuml
 from assertpy import assert_that
 
 def test_sequence_diagram():

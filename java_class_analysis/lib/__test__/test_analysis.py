@@ -2,11 +2,11 @@ import pickle
 import shelve
 from json import dumps, loads
 
-from lib.analysis import Analyzer
+from ..analysis import Analyzer
 from assertpy import assert_that
 from pathlib import Path
 
-from lib.tree import JavaFileMeta
+from ..tree import JavaFileMeta
 
 
 class TestAnalysis:
