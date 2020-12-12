@@ -47,7 +47,7 @@ class JavaFileMeta(Node):
 
 
 class JavaClassMeta(NamedNode):
-    attrs = ("package", "imports", "ast")
+    attrs = ("package", "imports", "ast", "repo")
     # out call ast details from source code
 
     def __init__(self, **kwargs):

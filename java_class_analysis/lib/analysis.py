@@ -9,7 +9,7 @@ from pathlib import Path
 from .tree import JavaClassMeta
 from .utils import init_workspace_files
 
-ParseContext = namedtuple("ParseContext", ["package", "compilationUnit", "file_path"])
+ParseContext = namedtuple("ParseContext", ["repo", "package", "compilationUnit", "file_path"])
 MethodContext = namedtuple("MethodContext", ["method", "local_variables"])
 all_java_files = dict()
 parse_marker = dict()
@@ -69,10 +69,11 @@ class Analyzer:
         if impl_class:
             is_traverse_to_impl = True
             full_class_name = impl_class
-        if self.get_ast(full_class_name):
+        class_info = self.get_ast(full_class_name)
+        if class_info is not None:
             for path, node in self.root_ast.filter(tree.CompilationUnit):
                 self.deep += 1
-                self.push_context(ParseContext(node.package.name, node, java_class))
+                self.push_context(ParseContext(class_info[0], node.package.name, node, java_class))
                 java_meta = self.parse_class()
                 if java_meta:
                     self.method_context = None
@@ -107,13 +108,14 @@ class Analyzer:
         paths = all_java_files.get(java_class)
         # TODO need deal with same package in different repos
         if not paths:
-            return False
+            return None
         if len(paths) > 1:
             self.log("🚨 Warning: Multi java files found")
         for p in paths:
             self.root_ast = javalang.parse.parse(open(p, 'rb').read())
-            self.log("🏴󠁩󠁤󠁪󠁷󠁿 %s" % java_class)
-        return True
+            repo_name = str(p).replace(str(self.root_workspace), "").split(os.sep)[1]
+            self.log("🏴󠁩󠁤󠁪󠁷󠁿 %s : %s" % (java_class, repo_name))
+        return (repo_name,)
 
     def parse_class(self) -> JavaClassMeta:
         for path, node in self.context.compilationUnit.filter(tree.ClassDeclaration):
@@ -121,7 +123,8 @@ class Analyzer:
             imports = dict(
                 ((lambda p: p.split(".")[-1])(x.path), x.path) for x in self.context.compilationUnit.imports if
                 x.path.startswith(("com.successfactors", "com.sf")))
-            java_meta = JavaClassMeta(package=self.context.package, imports=imports, name=node.name, ast=node)
+            java_meta = JavaClassMeta(package=self.context.package, imports=imports, name=node.name, ast=node,
+                                      repo=self.context.repo)
             return java_meta
 
     def push_klass(self, klazz: JavaClassMeta):
