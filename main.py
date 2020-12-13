@@ -23,9 +23,11 @@ async def query(q: QueryModel):
     arr = analyzer.parse(q.name)
     mindmap = plantuml.mind_diagram(arr[0])
     sequence_diagram = plantuml.sequence_diagram(arr[0])
+    repo_diagram = plantuml.repo_diagram(arr[0])
     ret = dict()
     ret['mindmap'] = mindmap
     ret['sequence'] = sequence_diagram
+    ret['repo'] = repo_diagram
     return ret
 
 

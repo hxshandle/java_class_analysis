@@ -48,7 +48,7 @@ actor %s
 
 def build_mind_diagram(klass: JavaClassMeta, deep=1) -> List[str]:
     uml = list()
-    uml.append("{} {}".format('*'*deep, klass.package+"."+klass.name))
+    uml.append("{} {}".format('*' * deep, klass.package + "." + klass.name))
     for child in klass.children:
         uml += build_mind_diagram(child, deep + 1)
     return uml
@@ -60,4 +60,23 @@ def mind_diagram(data: JavaClassMeta):
 %s
 @endmindmap
     """ % "\n".join(build_mind_diagram(data))
+    return _str
+
+
+def build_repo_diagram(klass: JavaClassMeta, deep=1) -> List[str]:
+    uml = list()
+    uml.append("{} {}".format('*' * deep, klass.repo))
+    for j in set([x.repo for x in klass.children if x.repo != klass.repo]):
+        uml.append("{} {}".format("*" * (deep + 1), j))
+        for k in [x.package + "." + x.name for x in klass.children if x.repo == j]:
+            uml.append("{} {}".format("*" * (deep + 2), k))
+    return uml
+
+
+def repo_diagram(data: JavaClassMeta):
+    _str = """
+@startwbs
+%s
+@endwbs
+    """ % "\n".join(build_repo_diagram(data))
     return _str
