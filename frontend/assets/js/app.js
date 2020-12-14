@@ -1,5 +1,5 @@
 ;(function () {
-  const BASE_URL = 'http://hh.test'
+  const BASE_URL = ''
   const loading = $('#loading')
   const tabNav = $('#pills-tab')
   const tabs = ['mindmap', 'sequence', 'repo']
