@@ -19,8 +19,8 @@ $('.mask').on('mousedown', function (event) {
     viewEl.offsetHeight, // view port height
   ]
   mouseStartPos = [event.clientX, event.clientY]
-  console.log(`start POS ${startPos}`)
-  console.log(`start Mouse POS ${mouseStartPos}`)
+  // console.log(`start POS ${startPos}`)
+  // console.log(`start Mouse POS ${mouseStartPos}`)
 })
 
 $('.mask').on('mouseup', function (event) {
@@ -37,10 +37,12 @@ $('.mask').on('mousemove', function (event) {
   }
   var xOffset = event.clientX - mouseStartPos[0]
   var yOffset = event.clientY - mouseStartPos[1]
-  var x = Math.min(startPos[0] + xOffset, 0)
-  var y = Math.min(startPos[1] + yOffset, 0)
+  var x = startPos[0] + xOffset
+  var y = startPos[1] + yOffset
   x = Math.max(-( startPos[2] - startPos[4]), x)
   y = Math.max(-( startPos[3] - startPos[5]), y)
+  x = Math.min(x, 0)
+  y = Math.min(y, 0)
   svgEl.style.left = x
   svgEl.style.top = y
   // console.log(event)
